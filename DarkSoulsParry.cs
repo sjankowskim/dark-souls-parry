@@ -18,21 +18,20 @@ namespace DarkSoulsParry
             
         private void OnCreatureParry(Creature creature, CollisionInstance collisionInstance)
         {
-            // if the weapon used to parry SOMETHING was held by the player
+            // if valid parry item
             if (collisionInstance.targetCollider.GetComponentInParent<Item>() != null)
             {
-                if (Player.currentCreature.equipment.GetHeldItem(Side.Right) == collisionInstance.targetCollider.GetComponentInParent<Item>()
-                    || (Player.currentCreature.equipment.GetHeldItem(Side.Left) == collisionInstance.targetCollider.GetComponentInParent<Item>()))
+                Item item = collisionInstance.targetCollider.GetComponentInParent<Item>();
+                // ... and held by the player
+                if (Player.currentCreature.equipment.GetHeldItem(Side.Right) == item 
+                    || Player.currentCreature.equipment.GetHeldItem(Side.Left) == item)
                 {
-                    Item playerWeapon = collisionInstance.targetCollider.GetComponentInParent<Item>();
-                    if (playerWeapon.rb.velocity.magnitude >= minWeaponVelocity)
+                    // ... and hit with high enough velocity
+                    if (item.rb.velocity.magnitude >= minWeaponVelocity)
                     {
-                        EffectData data;
-                        if (useDarkSouls2Parry) {
-                            data = Catalog.GetData<EffectData>("DS2Parry");
-                        } else {
-                            data = Catalog.GetData<EffectData>("DS1Parry");
-                        }
+                        EffectData data = (useDarkSouls2Parry)
+                            ? Catalog.GetData<EffectData>("DS2Parry")
+                            : Catalog.GetData<EffectData>("DS1Parry");
                         data.Spawn(Player.currentCreature.transform).Play();
                         GameManager.local.StartCoroutine(ParryCoroutine(creature));
                     }
@@ -45,8 +44,7 @@ namespace DarkSoulsParry
             if (useDarkSouls2Parry) {
                 yield return new WaitForSeconds(0.4f);
                 parriedCreature.TryPush(Creature.PushType.Magic, -parriedCreature.brain.transform.forward, 2, 0);
-            } else
-            {
+            } else {
                 parriedCreature.animator.speed = 0.25f;
                 yield return new WaitForSeconds(3.0f);
                 parriedCreature.animator.speed = 1.0f;
