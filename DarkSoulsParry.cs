@@ -1,40 +1,22 @@
-﻿using Newtonsoft.Json;
-using System;
-using System.Collections;
-using System.IO;
+﻿using System.Collections;
 using ThunderRoad;
 using UnityEngine;
 
 namespace DarkSoulsParry
 {
-    [Serializable]
-    public class ParryOptions
-    {
-        public bool useDSParries;
-        public float minWeaponVelocity;
-        public bool useDarkSouls2Parry;
-        public bool useTieredParry;
-        public float minTier2Velocity;
-        public float ds1ParryDuration;
-        public float ds2DelayDuration;
-        public float ds1ParrySlow;
-    }
-
     public class DarkSoulsParry : LevelModule
     {
-        public const string OPTIONS_FILE_PATH = "\\Mods\\DarkSoulsParry\\ParryOptions.opt";
-        public static ParryOptions data;
+        public bool useDSParries = true;
+        public float minWeaponVelocity = 6.0f;
+        public float ds1ParryDuration = 4.0f;
+        public float ds1ParrySlow = 0.10f;
+        public bool useDarkSouls2Parry = false;
+        public float ds2DelayDuration = 0.3f;
+        public bool useTieredParry = false;
+        public float minTier2Velocity = 6.0f;
 
         public override IEnumerator OnLoadCoroutine()
         {
-            try
-            {
-                data = JsonConvert.DeserializeObject<ParryOptions>(File.ReadAllText(Application.streamingAssetsPath + OPTIONS_FILE_PATH));
-            }
-            catch
-            {
-                Debug.LogError("Missing ParryOptions.opt. Dark Souls Parry WILL break!");
-            }
             EventManager.onCreatureParry += OnCreatureParry;
             EventManager.onCreatureKill += OnCreatureKill;
             return base.OnLoadCoroutine();
@@ -43,13 +25,13 @@ namespace DarkSoulsParry
         private void OnCreatureKill(Creature creature, Player player, CollisionInstance collisionInstance, EventTime eventTime)
         {
             if (eventTime == EventTime.OnStart)
-                if (creature.animator.speed == data.ds1ParrySlow)
+                if (creature.animator.speed == ds1ParrySlow)
                     creature.animator.speed = 1.0f;
         }
 
         private void OnCreatureParry(Creature creature, CollisionInstance collisionInstance)
         {
-            if (data.useDSParries)
+            if (useDSParries)
             {
                 // if valid parry item
                 if (collisionInstance.targetCollider.GetComponentInParent<Item>() != null)
@@ -60,7 +42,7 @@ namespace DarkSoulsParry
                         || Player.currentCreature.equipment.GetHeldItem(Side.Left) == item)
                     {
                         // ... and hit with high enough velocity
-                        if (item.rb.velocity.magnitude >= data.minWeaponVelocity)
+                        if (item.rb.velocity.magnitude >= minWeaponVelocity)
                         {
                             GameManager.local.StartCoroutine(ParryCoroutine(creature, item.rb.velocity.magnitude));
                         }
@@ -71,16 +53,16 @@ namespace DarkSoulsParry
 
         private IEnumerator ParryCoroutine(Creature creature, float velocity)
         {
-            if (data.useTieredParry)
+            if (useTieredParry)
             {
-                if (velocity >= data.minTier2Velocity)
+                if (velocity >= minTier2Velocity)
                     GameManager.local.StartCoroutine(DarkSouls2Parry(creature));
                 else
                     GameManager.local.StartCoroutine(DarkSouls1Parry(creature));
             }
             else
             {
-                if (data.useDarkSouls2Parry)
+                if (useDarkSouls2Parry)
                     GameManager.local.StartCoroutine(DarkSouls2Parry(creature));
                 else
                     GameManager.local.StartCoroutine(DarkSouls1Parry(creature));
@@ -91,15 +73,15 @@ namespace DarkSoulsParry
         private IEnumerator DarkSouls1Parry(Creature creature)
         {
             Catalog.GetData<EffectData>("DS1Parry").Spawn(Player.currentCreature.transform).Play();
-            creature.animator.speed = data.ds1ParrySlow;
-            yield return new WaitForSeconds(data.ds1ParryDuration);
+            creature.animator.speed = ds1ParrySlow;
+            yield return new WaitForSeconds(ds1ParryDuration);
             creature.animator.speed = 1.0f;
         }
 
         private IEnumerator DarkSouls2Parry(Creature creature)
         {
             Catalog.GetData<EffectData>("DS2Parry").Spawn(Player.currentCreature.transform).Play();
-            yield return new WaitForSeconds(data.ds2DelayDuration);
+            yield return new WaitForSeconds(ds2DelayDuration);
             creature.TryPush(Creature.PushType.Magic, -creature.brain.transform.forward, 3, 0);
         }
     }
