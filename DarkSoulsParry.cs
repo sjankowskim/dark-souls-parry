@@ -6,13 +6,26 @@ namespace DarkSoulsParry
 {
     public class DarkSoulsParry : LevelModule
     {
+        [Tooltip("Turns on/off the Dark Souls Parry mod.")]
         public bool useDSParries = true;
+        [Tooltip("Determines the minimum velocity weapons must clash at in order to register as a Dark Souls parry.")]
+        [Range(0, 15)]
         public float minWeaponVelocity = 6.0f;
+        [Tooltip("Determines the duration a creature is slowed for after a Dark Souls 1 parry.")]
+        [Range(0, 100)]
         public float ds1ParryDuration = 4.0f;
+        [Tooltip("Determines how slow a creature will be after a Dark Souls 1 parry.")]
+        [Range(0, 1)]
         public float ds1ParrySlow = 0.10f;
+        [Tooltip("Determines if the player wants to use Dark Souls 2 parries instead.")]
         public bool useDarkSouls2Parry = false;
+        [Tooltip("Determines how long to wait after a Dark Souls 2 parry to destabilize the creature.")]
+        [Range(0, 100)]
         public float ds2DelayDuration = 0.3f;
+        [Tooltip("Determines if the player wants to use a tiered parry, where exceeding minWeaponVelocity will do a Dark Souls 1 parry, and exceeding minTier2Velocity will do a Dark Souls 2 parry.")]
         public bool useTieredParry = false;
+        [Tooltip("Determines the minimum velocity weapons must clash at in order to register as a Dark Souls 2 parry for the tiered parry.")]
+        [Range(0, 15)]
         public float minTier2Velocity = 6.0f;
 
         public override IEnumerator OnLoadCoroutine()
