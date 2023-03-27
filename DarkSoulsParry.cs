@@ -79,9 +79,8 @@ namespace DarkSoulsParry
 
         private void OnCreatureKill(Creature creature, Player player, CollisionInstance collisionInstance, EventTime eventTime)
         {
-            if (eventTime == EventTime.OnStart)
-                if (creature.animator.speed == ds1ParrySlow)
-                    creature.animator.speed = 1.0f;
+            if (eventTime == EventTime.OnStart && creature.animator.speed == ds1ParrySlow)
+                creature.animator.speed = 1.0f;
         }
 
         private void OnCreatureParry(Creature creature, CollisionInstance collisionInstance)
