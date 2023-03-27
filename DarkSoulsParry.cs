@@ -6,46 +6,75 @@ namespace DarkSoulsParry
 {
     public enum ParrySound
     {
-        DS1Parry,
-        DS2Parry,
-        EldenRingParry
+        DS1,
+        DS2,
+        EldenRing
     }
 
-    public class DarkSoulsParry : LevelModule
+    public class DarkSoulsParry : ThunderScript
     {
-        [Tooltip("Turns on/off the Dark Souls Parry mod.")]
-        public bool useDSParries = true;
-        [Tooltip("Determines the minimum velocity weapons must clash at in order to register as a Dark Souls parry.")]
-        [Range(0, 15)]
-        public float minWeaponVelocity = 6.0f;
-        [Tooltip("Determines the duration a creature is slowed for after a Dark Souls 1 parry.")]
-        [Range(0, 100)]
-        public float ds1ParryDuration = 4.0f;
-        [Tooltip("Determines how slow a creature will be after a Dark Souls 1 parry. This value will be divded by 100. (i.e. 10s -> 0.1s)")]
-        [Range(0, 100)]
-        public float ds1ParrySlow = 10.0f;
-        [Tooltip("Determines the parry sound that will play for a Dark Souls 1 parry.")]
-        public ParrySound ds1ParrySound;
-        [Tooltip("Determines if the player wants to use Dark Souls 2 parries instead.")]
-        public bool useDarkSouls2Parry = false;
-        [Tooltip("Determines how long to wait after a Dark Souls 2 parry to destabilize the creature.")]
-        [Range(0, 100)]
-        public float ds2DelayDuration = 0.3f;
-        [Tooltip("Determines the parry sound that will play for a Dark Souls 2 parry.")]
-        public ParrySound ds2ParrySound;
-        [Tooltip("Determines if the player wants to use a tiered parry, where exceeding minWeaponVelocity will do a Dark Souls 1 parry, and exceeding minTier2Velocity will do a Dark Souls 2 parry.")]
-        public bool useTieredParry = false;
-        [Tooltip("Determines the minimum velocity weapons must clash at in order to register as a Dark Souls 2 parry for the tiered parry.")]
-        [Range(0, 15)]
-        public float minTier2Velocity = 7.0f;
-        [Tooltip("Determines if parries should only occur when the parry item is a shield.")]
-        public bool shieldOnlyParries = false;
-
-        public override IEnumerator OnLoadCoroutine()
+        public static ModOptionFloat[] zeroToOneHundered()
         {
+            ModOptionFloat[] options = new ModOptionFloat[101];
+            float val = 0;
+            for (int i = 0; i < options.Length; i++)
+            {
+                options[i] = new ModOptionFloat(val.ToString("0.0"), val);
+                val += 1f;
+            }
+            return options;
+        }
+
+        public static ModOptionFloat[] zeroToHundredWithTenths()
+        {
+            ModOptionFloat[] options = new ModOptionFloat[1001];
+            float val = 0;
+            for (int i = 0; i < options.Length; i++)
+            {
+                options[i] = new ModOptionFloat(val.ToString("0.0"), val);
+                val += 0.1f;
+            }
+            return options;
+        }
+
+        [ModOption(name: "Use Dark Souls Parry Mod", tooltip: "Turns on/off the Dark Souls Parry mod.", defaultValueIndex = 1, order = 0)]
+        public static bool useDSParries;
+
+        [ModOption(name: "Minimum Weapon Velocity", tooltip: "Determines the minimum velocity weapons must clash at in order to register as a Dark Souls parry.", valueSourceName = nameof(zeroToOneHundered), defaultValueIndex = 6, order = 1)]
+        public static float minWeaponVelocity;
+
+        [ModOption(name: "Shield Only Parries", tooltip: "Determines if parries should only occur when the parry item is a shield.", defaultValueIndex = 0, order = 2)]
+        public bool shieldOnlyParries;
+
+        [ModOption(name: "Parry Duration", tooltip: "Determines the duration a creature is slowed for after a Dark Souls 1 parry.", valueSourceName = nameof(zeroToOneHundered), defaultValueIndex = 4, category = "Dark Souls 1", order = 0)]
+        public static float ds1ParryDuration;
+
+        [ModOption(name: "Slow Percentage", tooltip: "Determines how slow a creature will be after a Dark Souls 1 parry.", valueSourceName = nameof(zeroToOneHundered), defaultValueIndex = 10, category = "Dark Souls 1", order = 1)]
+        public static float ds1ParrySlow;
+
+        [ModOption(name: "Parry Sound", tooltip: "Determines the parry sound that will play for a Dark Souls 1 parry.", defaultValueIndex = 0, category = "Dark Souls 1", order = 2)]
+        public static ParrySound ds1ParrySound;
+
+        [ModOption(name: "Use Dark Souls 2 Parry", tooltip: "Determines if the player wants to use Dark Souls 2 parries instead.", defaultValueIndex = 0, category = "Dark Souls 2", order = 0)]
+        public static bool useDarkSouls2Parry;
+
+        [ModOption(name: "Delay Duration", tooltip: "Determines how long to wait after a Dark Souls 2 parry to destabilize the creature.", valueSourceName = nameof(zeroToHundredWithTenths), defaultValueIndex = 3, category = "Dark Souls 2", order = 1)]
+        public static float ds2DelayDuration;
+
+        [ModOption(name: "Parry Sound", tooltip: "Determines the parry sound that will play for a Dark Souls 2 parry.", defaultValueIndex = 1, category = "Dark Souls 2", order = 2)]
+        public static ParrySound ds2ParrySound;
+
+        [ModOption(name: "Use Tiered Parry", tooltip: "Determines if the player wants to use a tiered parry, where exceeding minWeaponVelocity will do a Dark Souls 1 parry, and exceeding minTier2Velocity will do a Dark Souls 2 parry.", defaultValueIndex = 0, category = "Tiered Parry", order = 0)]
+        public static bool useTieredParry;
+
+        [ModOption(name: "Minimum Weapon Velocity", tooltip: "Determines the minimum velocity weapons must clash at in order to register as a Dark Souls 2 parry for the tiered parry.", valueSourceName = nameof(zeroToHundredWithTenths), defaultValueIndex = 70, category = "Tiered Parry", order = 1)]
+        public static float minTier2Velocity;
+
+        public override void ScriptLoaded(ModManager.ModData modData)
+        {
+            base.ScriptLoaded(modData);
             EventManager.onCreatureParry += OnCreatureParry;
             EventManager.onCreatureKill += OnCreatureKill;
-            return base.OnLoadCoroutine();
         }
 
         private void OnCreatureKill(Creature creature, Player player, CollisionInstance collisionInstance, EventTime eventTime)
@@ -68,10 +97,10 @@ namespace DarkSoulsParry
                         || Player.currentCreature.equipment.GetHeldItem(Side.Left) == item)
                     {
                         // ... and hit with high enough velocity
-                        if (item.rb.velocity.magnitude >= minWeaponVelocity)
+                        if (item.physicBody.velocity.magnitude >= minWeaponVelocity)
                         {
                             if (!shieldOnlyParries || (shieldOnlyParries && item.data.type == ItemData.Type.Shield))
-                                GameManager.local.StartCoroutine(ParryCoroutine(creature, item.rb.velocity.magnitude));
+                                GameManager.local.StartCoroutine(ParryCoroutine(creature, item.physicBody.velocity.magnitude));
                         }
                     }
                 }
