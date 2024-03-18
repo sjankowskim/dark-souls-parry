@@ -1,2 +1,2 @@
-# DarkSoulsParry
-DarkSoulsParry mod for Blade &amp; Sorcery
+# FromSoftwareParry
+FromSoftwareParry mod for Blade &amp; Sorcery
