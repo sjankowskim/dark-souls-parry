@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.Collections.Generic;
 using ThunderRoad;
 using UnityEngine;
 
@@ -6,9 +7,24 @@ namespace DarkSoulsParry
 {
     public enum ParrySound
     {
+        // Demon Souls parry SFX is same as DS1
         DS1,
         DS2,
+        Bloodborne,
+        // Dark Souls 3 parry SFX is same as DS1 & Sekiro Deathblow
+        // Dark Souls Remastered parry SFX is same as DS1
+        Sekiro,
+        SekiroHuge,
+        DeSR,
         EldenRing
+    }
+
+    public enum ParryType
+    {
+        Slowed,
+        Stagger,
+        Posture,
+        Tiered
     }
 
     public class DarkSoulsParry : ThunderScript
@@ -37,107 +53,192 @@ namespace DarkSoulsParry
             return options;
         }
 
-        [ModOption(name: "Use Dark Souls Parry Mod", tooltip: "Turns on/off the Dark Souls Parry mod.", defaultValueIndex = 1, order = 0)]
-        public static bool useDSParries;
+        public static ModOptionFloat[] zeroToEightWith2Tenths()
+        {
+            ModOptionFloat[] options = new ModOptionFloat[41];
+            float val = 0;
+            for (int i = 0; i < options.Length; i++)
+            {
+                options[i] = new ModOptionFloat(val.ToString("0.0"), val);
+                val += 0.2f;
+            }
+            return options;
+        }
 
-        [ModOption(name: "Minimum Weapon Velocity", tooltip: "Determines the minimum velocity weapons must clash at in order to register as a Dark Souls parry.", valueSourceName = nameof(zeroToOneHundered), defaultValueIndex = 6, order = 1)]
-        public static float minWeaponVelocity;
+        public static ModOptionInt[] oneToTen()
+        {
+            ModOptionInt[] options = new ModOptionInt[10];
+            int val = 1;
+            for (int i = 0; i < options.Length; i++)
+            {
+                options[i] = new ModOptionInt(val.ToString("0"), val);
+                val++;
+            }
+            return options;
+        }
+
+        // +-------------+
+        // |   GENERAL   |
+        // +-------------+ 
+
+        [ModOption(name: "Use FromSoftware Parries", tooltip: "Turns on/off the FromSoftware parries mod.", defaultValueIndex = 1, order = 0)]
+        public static bool useFSParries;
+
+        [ModOption(name: "Parry Type", tooltip: "Determines what type parry to perform.", defaultValueIndex = 0, order = 1)]
+        public static ParryType parryType;
 
         [ModOption(name: "Shield Only Parries", tooltip: "Determines if parries should only occur when the parry item is a shield.", defaultValueIndex = 0, order = 2)]
         public bool shieldOnlyParries;
 
-        [ModOption(name: "Parry Duration", tooltip: "Determines the duration a creature is slowed for after a Dark Souls 1 parry.", valueSourceName = nameof(zeroToOneHundered), defaultValueIndex = 4, category = "Dark Souls 1", order = 0)]
-        public static float ds1ParryDuration;
+        // +--------------+
+        // |    SLOWED    |
+        // +--------------+ 
 
-        [ModOption(name: "Slow Percentage", tooltip: "Determines how slow a creature will be after a Dark Souls 1 parry.", valueSourceName = nameof(zeroToOneHundered), defaultValueIndex = 10, category = "Dark Souls 1", order = 1)]
-        public static float ds1ParrySlow;
+        [ModOption(name: "Slowed Parry Min. Velocity", tooltip: "Determines the minimum velocity weapons must clash at to register as a Dark Souls 1 parry.", valueSourceName = nameof(zeroToEightWith2Tenths), defaultValueIndex = 30, category = "Slowed (DS1, BB, ER)", order = 0)]
+        public static float slowedMinVelocity;
 
-        [ModOption(name: "Parry Sound", tooltip: "Determines the parry sound that will play for a Dark Souls 1 parry.", defaultValueIndex = 0, category = "Dark Souls 1", order = 2)]
-        public static ParrySound ds1ParrySound;
+        [ModOption(name: "Slow Duration", tooltip: "Determines the duration a creature is slowed for after a Dark Souls 1 parry.", valueSourceName = nameof(zeroToOneHundered), defaultValueIndex = 4, category = "Slowed (DS1, BB, ER)", order = 1)]
+        public static float slowedParryDuration;
 
-        [ModOption(name: "Use Dark Souls 2 Parry", tooltip: "Determines if the player wants to use Dark Souls 2 parries instead.", defaultValueIndex = 0, category = "Dark Souls 2", order = 0)]
-        public static bool useDarkSouls2Parry;
+        [ModOption(name: "Slow Percentage", tooltip: "Determines a creature's speed on parry in percentage. This number should be low to notice a difference.", valueSourceName = nameof(zeroToOneHundered), defaultValueIndex = 10, category = "Slowed (DS1, BB, ER)", order = 2)]
+        public static float slowedParrySlow;
 
-        [ModOption(name: "Delay Duration", tooltip: "Determines how long to wait after a Dark Souls 2 parry to destabilize the creature.", valueSourceName = nameof(zeroToHundredWithTenths), defaultValueIndex = 3, category = "Dark Souls 2", order = 1)]
-        public static float ds2DelayDuration;
+        [ModOption(name: "Slowed Parry SFX", tooltip: "Determines the parry sound that will play for a Dark Souls 1 parry.", defaultValueIndex = 0, category = "Slowed (DS1, BB, ER)", order = 3)]
+        public static ParrySound slowedParrySound;
 
-        [ModOption(name: "Parry Sound", tooltip: "Determines the parry sound that will play for a Dark Souls 2 parry.", defaultValueIndex = 1, category = "Dark Souls 2", order = 2)]
-        public static ParrySound ds2ParrySound;
+        // +-------------+
+        // |   STAGGER   |
+        // +-------------+ 
 
-        [ModOption(name: "Use Tiered Parry", tooltip: "Determines if the player wants to use a tiered parry, where exceeding minWeaponVelocity will do a Dark Souls 1 parry, and exceeding minTier2Velocity will do a Dark Souls 2 parry.", defaultValueIndex = 0, category = "Tiered Parry", order = 0)]
-        public static bool useTieredParry;
+        [ModOption(name: "Stagger Parry Min. Velocity", tooltip: "Determines the minimum velocity weapons must clash at to register as a Dark Souls 2 parry.", valueSourceName = nameof(zeroToEightWith2Tenths), defaultValueIndex = 30, category = "Stagger (DS2, DeSR)", order = 0)]
+        public static float staggerMinVelocity;
 
-        [ModOption(name: "Minimum Weapon Velocity", tooltip: "Determines the minimum velocity weapons must clash at in order to register as a Dark Souls 2 parry for the tiered parry.", valueSourceName = nameof(zeroToHundredWithTenths), defaultValueIndex = 70, category = "Tiered Parry", order = 1)]
-        public static float minTier2Velocity;
+        [ModOption(name: "Stagger Delay", tooltip: "Determines how long to wait to destabilize the creature after a Dark Souls 2 parry.", valueSourceName = nameof(zeroToHundredWithTenths), defaultValueIndex = 3, category = "Stagger (DS2, DeSR)", order = 1)]
+        public static float staggerDelayDuration;
+
+        [ModOption(name: "Stagger Parry SFX", tooltip: "Determines the parry sound that will play for a Dark Souls 2 parry.", defaultValueIndex = 1, category = "Stagger (DS2, DeSR)", order = 2)]
+        public static ParrySound staggerParrySound;
+
+        // +-------------+
+        // |   POSTURE   |
+        // +-------------+ 
+
+        [ModOption(name: "Posture Min. Velocity", tooltip: "Determines the minimum velocity weapons must clash at to register as a Sekiro parry.", valueSourceName = nameof(zeroToEightWith2Tenths), defaultValueIndex = 30, category = "Posture", order = 0)]
+        public static float postureMinVelocity;
+
+        [ModOption(name: "Posture Parry Count", tooltip: "Determines how many parries need to be done to stagger an enemy.", valueSourceName = nameof(oneToTen), defaultValueIndex = 2, category = "Posture (Sekiro)", order = 1)]
+        public static int postureParryCount;
+        private Dictionary<Creature, int> allCreaturePoise = new Dictionary<Creature, int>();
+
+        [ModOption(name: "Use Posture Parry Sound", tooltip: "Determines whether to play a SFX on a posture parry (NOT on a stagger).", defaultValueIndex = 1, category = "Posture (Sekiro)", order = 2)]
+        public static bool postureUseClashSFX;
+
+        [ModOption(name: "Posture Parry SFX", tooltip: "Determines the parry sound that will play on a stagger for Sekiro parries.", defaultValueIndex = 3, category = "Posture (Sekiro)", order = 3)]
+        public static ParrySound postureParrySound;
+
+        // +--------------+
+        // |    TIERED    |
+        // +--------------+
+ 
+        [ModOption(name: "Minimum Tier 1 Velocity", tooltip: "Determines the minimum velocity weapons must clash at to register as a Tier 1 parry.", valueSourceName = nameof(zeroToEightWith2Tenths), defaultValueIndex = 30, category = "Tiered", order = 0)]
+        public static float tier1MinParry;
+
+        [ModOption(name: "Minimum Tier 2 Velocity", tooltip: "Determines the minimum velocity weapons must clash at to register as a Tier 2 parry.", valueSourceName = nameof(zeroToEightWith2Tenths), defaultValueIndex = 40, category = "Tiered", order = 0)]
+        public static float tier2MinParry;
 
         public override void ScriptLoaded(ModManager.ModData modData)
         {
             base.ScriptLoaded(modData);
-            EventManager.onCreatureParry += OnCreatureParry;
             EventManager.onCreatureKill += OnCreatureKill;
+            EventManager.onCreatureParry += EventManager_onCreatureParry;
         }
 
-        private void OnCreatureKill(Creature creature, Player player, CollisionInstance collisionInstance, EventTime eventTime)
+        private void EventManager_onCreatureParry(Creature creature, CollisionInstance collisionInstance)
         {
-            if (eventTime == EventTime.OnStart && creature.animator.speed == ds1ParrySlow)
-                creature.animator.speed = 1.0f;
-        }
+            if (!useFSParries)
+                return;
 
-        private void OnCreatureParry(Creature creature, CollisionInstance collisionInstance)
-        {
-            if (useDSParries)
+            // if valid parry item
+            if (collisionInstance.targetCollider.GetComponentInParent<Item>() != null)
             {
-                // if valid parry item
-                if (collisionInstance.targetCollider.GetComponentInParent<Item>() != null)
+                Item item = collisionInstance.targetCollider.GetComponentInParent<Item>();
+                // ... and held by the player
+                if (Player.currentCreature.equipment.GetHeldItem(Side.Right) == item
+                    || Player.currentCreature.equipment.GetHeldItem(Side.Left) == item)
                 {
-                    Item item = collisionInstance.targetCollider.GetComponentInParent<Item>();
-                    // ... and held by the player
-                    if (Player.currentCreature.equipment.GetHeldItem(Side.Right) == item
-                        || Player.currentCreature.equipment.GetHeldItem(Side.Left) == item)
+                    if (!shieldOnlyParries || (shieldOnlyParries && item.data.type == ItemData.Type.Shield))
                     {
-                        // ... and hit with high enough velocity
-                        if (item.physicBody.velocity.magnitude >= minWeaponVelocity)
+                        float velocity = item.physicBody.velocity.magnitude;
+                        switch (parryType)
                         {
-                            if (!shieldOnlyParries || (shieldOnlyParries && item.data.type == ItemData.Type.Shield))
-                                GameManager.local.StartCoroutine(ParryCoroutine(creature, item.physicBody.velocity.magnitude));
+                            case ParryType.Slowed:
+                                if (velocity >= slowedMinVelocity)
+                                    GameManager.local.StartCoroutine(SlowedParry(creature));
+                                break;
+                            case ParryType.Stagger:
+                                if (velocity >= staggerMinVelocity)
+                                    GameManager.local.StartCoroutine(StaggerParry(creature));
+                                break;
+                            case ParryType.Posture:
+                                if (velocity >= postureMinVelocity)
+                                    PostureParry(creature, collisionInstance);
+                                break;
+                            case ParryType.Tiered:
+                                if (velocity >= tier2MinParry)
+                                    GameManager.local.StartCoroutine(SlowedParry(creature));
+                                else if (velocity >= tier1MinParry)
+                                    GameManager.local.StartCoroutine(StaggerParry(creature));
+                                break;
                         }
                     }
                 }
             }
         }
 
-        private IEnumerator ParryCoroutine(Creature creature, float velocity)
+        private void OnCreatureKill(Creature creature, Player player, CollisionInstance collisionInstance, EventTime eventTime)
         {
-            if (useTieredParry)
-            {
-                if (velocity >= minTier2Velocity)
-                    GameManager.local.StartCoroutine(DarkSouls2Parry(creature));
-                else
-                    GameManager.local.StartCoroutine(DarkSouls1Parry(creature));
-            }
-            else
-            {
-                if (useDarkSouls2Parry)
-                    GameManager.local.StartCoroutine(DarkSouls2Parry(creature));
-                else
-                    GameManager.local.StartCoroutine(DarkSouls1Parry(creature));
-            }
-            yield return null;
+            if (eventTime == EventTime.OnStart && creature.animator.speed == slowedParrySlow)
+                creature.animator.speed = 1.0f;
+
+            if (allCreaturePoise.ContainsKey(creature))
+                allCreaturePoise.Remove(creature);
         }
 
-        private IEnumerator DarkSouls1Parry(Creature creature)
+        private void PostureParry(Creature creature, CollisionInstance collisionInstance)
         {
-            Catalog.GetData<EffectData>(ds1ParrySound.ToString()).Spawn(Player.currentCreature.transform).Play();
-            creature.animator.speed = ds1ParrySlow / 100;
-            creature.locomotion.rb.velocity = Vector3.zero;
-            yield return new WaitForSeconds(ds1ParryDuration);
+            System.Random random = new System.Random();
+
+            if (!allCreaturePoise.ContainsKey(creature))
+                allCreaturePoise.Add(creature, postureParryCount);
+
+            allCreaturePoise[creature]--;
+
+            if (allCreaturePoise[creature] == 0)
+            {
+                if (postureParrySound == ParrySound.Sekiro)
+                    Catalog.GetData<EffectData>("SekiroBigParry").Spawn(collisionInstance.contactPoint, Quaternion.identity).Play();
+
+                Catalog.GetData<EffectData>(postureParrySound.ToString()).Spawn(Player.currentCreature.transform).Play();
+                creature.TryPush(Creature.PushType.Magic, -creature.brain.transform.forward, 3, 0);
+                allCreaturePoise.Remove(creature);
+            } else if (postureUseClashSFX)
+            {
+                Catalog.GetData<EffectData>("SekiroParry").Spawn(collisionInstance.contactPoint, Quaternion.identity).Play();
+            }
+        }
+
+        private IEnumerator SlowedParry(Creature creature)
+        {
+            Catalog.GetData<EffectData>(slowedParrySound.ToString()).Spawn(Player.currentCreature.transform).Play();
+            creature.animator.speed = slowedParrySlow / 100;
+            yield return new WaitForSeconds(slowedParryDuration);
             creature.animator.speed = 1.0f;
         }
 
-        private IEnumerator DarkSouls2Parry(Creature creature)
+        private IEnumerator StaggerParry(Creature creature)
         {
-            Catalog.GetData<EffectData>(ds2ParrySound.ToString()).Spawn(Player.currentCreature.transform).Play();
-            yield return new WaitForSeconds(ds2DelayDuration);
+            Catalog.GetData<EffectData>(staggerParrySound.ToString()).Spawn(Player.currentCreature.transform).Play();
+            yield return new WaitForSeconds(staggerDelayDuration);
             creature.TryPush(Creature.PushType.Magic, -creature.brain.transform.forward, 3, 0);
         }
     }
